@@ -1,8 +1,15 @@
 import os
-os.environ['TRACE_CUSTOMLLM_MODEL'] = "anthropic.claude-3-5-sonnet-20241022-v2:0"
-os.environ['TRACE_CUSTOMLLM_URL'] = "http://3.213.219.83:4000/"
-os.environ['TRACE_CUSTOMLLM_API_KEY'] = "hidden"
-os.environ['TRACE_DEFAULT_LLM_BACKEND'] = 'CustomLLM'
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from trace_config import configure_trace_environment
+
+configure_trace_environment()
+
 from opto import trace
 import pandas as pd
 import matplotlib.pyplot as plt
