@@ -23,7 +23,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 Then create and activate the environment:
 
 ```bash
-uv venv .venv
+uv venv
 source .venv/bin/activate
 ```
 
