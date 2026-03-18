@@ -151,3 +151,7 @@ These files are currently written to the working directory where the script is l
 
 - If `.env` is missing the variables required for the backend you selected, the scripts will stop early with a clear error.
 - The default `.env.example` now favors `LiteLLM` so people can plug in standard provider keys more easily.
+
+## Contact
+
+Contact Abhinav Akkiraju if there is any question for the code.
