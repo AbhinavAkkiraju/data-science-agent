@@ -12,6 +12,8 @@ configure_trace_environment()
 
 from opto import trace
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore", message=".*select_dtypes.*object.*")
 import pandas as pd
 from sklearn.model_selection import train_test_split, StratifiedKFold
 from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score)
@@ -243,8 +245,7 @@ class SpaceshipTitanicPipeline(Module):
         Returns:
             np.ndarray: Binary predictions for passenger transportation status
         """
-        if test_data: return [0] * len(test_data)
-        return [0] * len(y)
+        return [0] * len(data)
     
 
 train_data = pd.read_csv(r'spaceship-titanic/data/train.csv')
@@ -268,12 +269,16 @@ while epoch < 20:
     try:
         train_predictions = agent(X_train, y_train)
         train_accuracy = accuracy_score(y_train.values, train_predictions.data)
-        
+
         val_predictions = agent(X_train, y_train, X_val)
-        val_accuracy = accuracy_score(y_val.values, val_predictions.data)
-        val_precision = precision_score(y_val.values, val_predictions.data)
-        val_recall = recall_score(y_val.values, val_predictions.data)
-        val_f1 = f1_score(y_val.values, val_predictions.data)
+        failed = True
+        val_accuracy = val_precision = val_recall = val_f1 = 0.0
+        if len(y_val) == len(val_predictions.data):
+            failed = False
+            val_accuracy = accuracy_score(y_val.values, val_predictions.data)
+            val_precision = precision_score(y_val.values, val_predictions.data)
+            val_recall = recall_score(y_val.values, val_predictions.data)
+            val_f1 = f1_score(y_val.values, val_predictions.data)
 
         kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
         cv_metrics = {
@@ -286,18 +291,20 @@ while epoch < 20:
         for train_idx, val_idx in kf.split(X_train, y_train):
             X_fold_train, X_fold_val = X_train.iloc[train_idx], X_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
-            
+
             fold_preds = agent(X_fold_train, y_fold_train, X_fold_val)
-            
+
+            if len(y_fold_val) != len(fold_preds.data):
+                continue
             cv_metrics['accuracy'].append(accuracy_score(y_fold_val, fold_preds.data))
             cv_metrics['precision'].append(precision_score(y_fold_val, fold_preds.data))
             cv_metrics['recall'].append(recall_score(y_fold_val, fold_preds.data))
             cv_metrics['f1'].append(f1_score(y_fold_val, fold_preds.data))
 
-        cv_mean_accuracy = np.mean(cv_metrics['accuracy'])
-        cv_mean_f1 = np.mean(cv_metrics['f1'])
-        cv_mean_precision = np.mean(cv_metrics['precision'])
-        cv_mean_recall = np.mean(cv_metrics['recall'])
+        cv_mean_accuracy = np.mean(cv_metrics['accuracy']) if cv_metrics['accuracy'] else 0.0
+        cv_mean_f1 = np.mean(cv_metrics['f1']) if cv_metrics['f1'] else 0.0
+        cv_mean_precision = np.mean(cv_metrics['precision']) if cv_metrics['precision'] else 0.0
+        cv_mean_recall = np.mean(cv_metrics['recall']) if cv_metrics['recall'] else 0.0
 
         improving = ""
         if epoch > 0:
@@ -305,10 +312,12 @@ while epoch < 20:
                 improving = "Good improvement! "
             elif val_f1 < history["val_f1"][-1]:
                 improving = "Performance decreased. Try going back to what you had previously and then improving. "
-            else: 
+            else:
                 improving = "Performance stayed the same. Try changing your model or features. "
-        
+
         feedback = f"Epoch {epoch + 1}/{20}: {improving}Accuracy: {val_accuracy:.4f}, F1: {val_f1:.4f}, Precision: {val_precision:.4f}, Recall: {val_recall:.4f}. "
+        if failed:
+            feedback += f"Warning: Mismatch in validation data lengths. y_val: {len(y_val)}, val_predictions: {len(val_predictions.data)}. "
         
         if val_f1 < 0.5:
             feedback += "Model performance is poor. Try better feature engineering and preprocessing. "

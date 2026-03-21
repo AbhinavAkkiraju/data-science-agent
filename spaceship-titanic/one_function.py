@@ -12,6 +12,8 @@ configure_trace_environment()
 
 from opto import trace
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore", message=".*select_dtypes.*object.*")
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, StratifiedKFold
@@ -171,7 +173,7 @@ class SpaceshipTitanicPipeline:
         Returns:
             Processed training predictions or test predictions
         """
-        if test_data: return [0] * len(test_data)
+        if test_data is not None: return [0] * len(test_data)
         return [0] * len(y)
 
 train_data = pd.read_csv(r'spaceship-titanic/data/train.csv')

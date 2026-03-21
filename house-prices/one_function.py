@@ -15,6 +15,8 @@ from opto.trace import Module
 from opto.optimizers import OptoPrime
 import math
 import copy
+import warnings
+warnings.filterwarnings("ignore", message=".*select_dtypes.*object.*")
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, KFold
@@ -268,7 +270,7 @@ class HousePricesPipeline:
         Returns:
             Processed training predictions or test predictions
         """
-        if test_data: return [0] * len(test_data)
+        if test_data is not None: return [0] * len(test_data)
         return [0] * len(y)
 
 train_data = pd.read_csv(r'house-prices/data/train.csv')

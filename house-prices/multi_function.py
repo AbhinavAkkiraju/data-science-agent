@@ -11,6 +11,8 @@ from trace_config import configure_trace_environment
 configure_trace_environment()
 
 from opto import trace
+import warnings
+warnings.filterwarnings("ignore", message=".*select_dtypes.*object.*")
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -341,8 +343,7 @@ class HousePricesPipeline:
         Returns:
             np.ndarray: Predicted house prices
         """
-        if test_data: return [0] * len(test_data)
-        return [0] * len(y)
+        return [0] * len(data)
 
 train_data = pd.read_csv(r'house-prices/data/train.csv')
 test_data = pd.read_csv(r'house-prices/data/test.csv')
@@ -373,10 +374,14 @@ while epoch < 20:
         val_r2 = r2_score(y_val.values, val_predictions.data)
 
         kf = KFold(n_splits=5, shuffle=True, random_state=42)
+        cv_rmse_scores = []
         for train_idx, val_idx in kf.split(x_train):
             X_fold_train, X_fold_val = x_train.iloc[train_idx], x_train.iloc[val_idx]
             y_fold_train, y_fold_val = y_train.iloc[train_idx], y_train.iloc[val_idx]
             fold_preds = agent(X_fold_train, y_fold_train, X_fold_val)
+            if len(y_fold_val) == len(fold_preds.data):
+                cv_rmse_scores.append(math.sqrt(mean_squared_error(y_fold_val.values, fold_preds.data)))
+        cv_mean_rmse = np.mean(cv_rmse_scores) if cv_rmse_scores else float('nan')
 
         improving = ""
         if epoch > 0:
@@ -387,7 +392,8 @@ while epoch < 20:
             else: improving = "Performance stayed the same. Try changing your model or features. "
 
         
-        feedback = f"Epoch {epoch + 1}/{20}: {improving}RMSE: ${val_rmse:.2f}, MAE: ${val_mae:.2f}, R²: {val_r2:.4f}. "
+        cv_str = f"${cv_mean_rmse:.2f}" if not math.isnan(cv_mean_rmse) else "N/A"
+        feedback = f"Epoch {epoch + 1}/{20}: {improving}RMSE: ${val_rmse:.2f}, MAE: ${val_mae:.2f}, R²: {val_r2:.4f}, CV RMSE: {cv_str}. "
         
         if val_r2 < 0:
             feedback += "Model is performing worse than baseline. Focus on better feature engineering and selection. "
